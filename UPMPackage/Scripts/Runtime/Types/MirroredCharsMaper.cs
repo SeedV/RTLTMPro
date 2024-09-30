@@ -44,7 +44,10 @@ namespace RTLTMPro {
       { '｢', '｣' },
       { '｣', '｢' },
       { '❲', '❳' },
-      { '❳', '❲' }
+      { '❳', '❲' },
+      // custom define, user can replace '<' to 0xFFF0, '>' to 0xFFF1 previously
+      { (char)0xFFF0, (char)0xFFF1 },
+      { (char)0xFFF1, (char)0xFFF0 },
     };
   }
 }

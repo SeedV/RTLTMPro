@@ -70,7 +70,7 @@ namespace RTLTMPro {
 
       // If no RightToLeft and LeftToRight character is found, set to LeftToRight
       if (!hasRightToLeft && !hasLeftToRight) {
-        for (int j = 1; j < inputCharactersType.Length; j++) {
+        for (int j = 0; j < inputCharactersType.Length; j++) {
           if (inputCharactersType[j] == ContextType.Default) {
             inputCharactersType[j] = ContextType.LeftToRight;
           }
@@ -84,52 +84,6 @@ namespace RTLTMPro {
       for (int i = 0; i < inputCharactersType.Length; i++) {
         if (inputCharactersType[i] == ContextType.Default) {
           int ch = input.Get(i);
-
-          #region Judgment character condition
-
-          ContextType previousType = ContextType.Default;
-          ContextType behindType = ContextType.Default;
-
-          bool previousWhiteSpace = false;
-          bool behindWhiteSpace = false;
-
-          // Search forward for Context.Type.
-          // Maybe a failed searching.
-          for (int j = 1; j <= i; j++) {
-            if (input.Get(i - j) == _whiteSpace) {
-              previousWhiteSpace = true;
-            }
-
-            if (inputCharactersType[i - j] != ContextType.Default &&
-                inputCharactersType[i - j] != ContextType.Tag) {
-              previousType = inputCharactersType[i - j];
-
-              break;
-            }
-          }
-
-          // Search forward for Context.Type.
-          // Maybe a failed searching.
-          for (int j = 1; j + i <= input.Length - 1; j++) {
-            if (input.Get(i + j) == _whiteSpace) {
-              behindWhiteSpace = true;
-            }
-
-            if (inputCharactersType[i + j] != ContextType.Default &&
-                inputCharactersType[i + j] != ContextType.Tag) {
-              behindType = inputCharactersType[i + j];
-              break;
-            }
-          }
-
-          if (previousType == ContextType.Default && behindType != ContextType.Default) {
-            previousType = behindType;
-          } else if (previousType != ContextType.Default && behindType == ContextType.Default) {
-            behindType = previousType;
-          }
-
-          #endregion
-
           #region Mark Mirrored Character
 
           if (MirroredCharsMaper.MirroredCharsMap.ContainsKey((char)ch)) {
@@ -141,15 +95,34 @@ namespace RTLTMPro {
           #region Mark Paired Character
 
           if (PairedCharsMaper.PairedCharsSet.Contains((char)ch)) {
+            #region Judgment character condition
+
+            ContextType previousType = ContextType.Default;
+            ContextType behindType = ContextType.Default;
+
+            (previousType, _, behindType, _) =
+                GetNearbyType(input, i, inputCharactersType);
+
+            #endregion
             for (int j = 1; j < input.Length - i; j++) {
               if (input.Get(i + j) == ch) {
+                ContextType middleType = ContextType.Default;
                 ContextType pairedPreviousType = ContextType.Default;
                 ContextType pairedBehindType = ContextType.Default;
                 for (int k = 1; k <= j - 1; k++) {
-                  if (inputCharactersType[i + j - k] != ContextType.Default &&
+                  if (pairedPreviousType == ContextType.Default &&
+                      inputCharactersType[i + j - k] != ContextType.Default &&
                       inputCharactersType[i + j - k] != ContextType.Tag) {
                     pairedPreviousType = inputCharactersType[i + j - k];
-                    break;
+                  }
+
+                  if (middleType == ContextType.Default &&
+                      inputCharactersType[i + j - k] == ContextType.LeftToRight) {
+                    middleType = ContextType.LeftToRight;
+                  }
+
+                  if (inputCharactersType[i + j - k] == ContextType.RightToLeft) {
+                    middleType = ContextType.RightToLeft;
                   }
                 }
 
@@ -167,18 +140,28 @@ namespace RTLTMPro {
                 if (pairedPreviousType == ContextType.Default)
                   pairedPreviousType = pairedBehindType;
                 // If all type is default, all text is not letter
-                if (pairedPreviousType == ContextType.Default) {
-                  inputCharactersType[i] = ContextType.RightToLeft;
-                  inputCharactersType[i + j] = ContextType.RightToLeft;
+                if (pairedPreviousType == ContextType.Default &&
+                    previousType == ContextType.Default) {
+                  inputCharactersType[i] = ContextType.LeftToRight;
+                  inputCharactersType[i + j] = ContextType.LeftToRight;
+                }
+                if (pairedPreviousType == ContextType.Default &&
+                    previousType != ContextType.Default) {
+                  inputCharactersType[i] = previousType;
+                  inputCharactersType[i + j] = previousType;
                   break;
                 }
-
-                if (previousType == ContextType.LeftToRight && behindType == 
-                    ContextType.LeftToRight && pairedPreviousType == ContextType.LeftToRight) {
+                if (previousType == ContextType.LeftToRight
+                    && middleType == ContextType.LeftToRight
+                    && behindType == ContextType.LeftToRight
+                    && pairedPreviousType == ContextType.LeftToRight) {
                   inputCharactersType[i] = ContextType.LeftToRight;
                   inputCharactersType[i + j] = ContextType.LeftToRight;
                   break;
                 }
+                inputCharactersType[i] = ContextType.RightToLeft;
+                inputCharactersType[i + j] = ContextType.RightToLeft;
+                break;
               }
             }
           }
@@ -188,41 +171,58 @@ namespace RTLTMPro {
           #region Mark Normal Punctuation character and symbol character
 
           if (inputCharactersType[i] != ContextType.Default) continue;
-          if (previousType == ContextType.LeftToRight && behindType == ContextType.LeftToRight) {
-            inputCharactersType[i] = ContextType.LeftToRight;
-            continue;
-          }
+          else {
+             #region Judgment character condition
 
-          if (previousType == ContextType.RightToLeft && behindType == ContextType.RightToLeft) {
-            inputCharactersType[i] = ContextType.RightToLeft;
-            continue;
-          }
+             ContextType previousType = ContextType.Default;
+             ContextType behindType = ContextType.Default;
 
-          // If this character is a white space, previous & behind are not LeftToRight same time
-          if (input.Get(i) == _whiteSpace) {
-            inputCharactersType[i] = ContextType.RightToLeft;
-          }
+             bool previousWhiteSpace = false;
+             bool behindWhiteSpace = false;
 
-          // In order to clearly see the judgment logic, ignore the grammar prompts here
-          if (previousWhiteSpace == false && behindWhiteSpace == true) {
-            inputCharactersType[i] = previousType;
-            continue;
-          }
+             (previousType, previousWhiteSpace, behindType, behindWhiteSpace) =
+                 GetNearbyType(input, i, inputCharactersType);
 
-          // In order to clearly see the judgment logic, ignore the grammar prompts here
-          if (previousWhiteSpace == true && behindWhiteSpace == false) {
-            inputCharactersType[i] = behindType;
-            continue;
-          }
+             #endregion
 
-          // In order to clearly see the judgment logic, ignore the grammar prompts here
-          if (previousWhiteSpace == false && behindWhiteSpace == false) {
-            inputCharactersType[i] = ContextType.RightToLeft;
-          }
+             if (previousType == ContextType.LeftToRight &&
+                 behindType == ContextType.LeftToRight) {
+               inputCharactersType[i] = ContextType.LeftToRight;
+               continue;
+             }
 
-          // In order to clearly see the judgment logic, ignore the grammar prompts here
-          if (previousWhiteSpace == true && behindWhiteSpace == true) {
-            inputCharactersType[i] = ContextType.RightToLeft;
+             if (previousType == ContextType.RightToLeft &&
+                 behindType == ContextType.RightToLeft) {
+               inputCharactersType[i] = ContextType.RightToLeft;
+               continue;
+             }
+
+             // If this character is a white space, previous & behind are not LeftToRight same time
+             if (input.Get(i) == _whiteSpace) {
+               inputCharactersType[i] = ContextType.RightToLeft;
+             }
+
+             // In order to clearly see the judgment logic, ignore the grammar prompts here
+             if (previousWhiteSpace == false && behindWhiteSpace == true) {
+               inputCharactersType[i] = previousType;
+               continue;
+             }
+
+             // In order to clearly see the judgment logic, ignore the grammar prompts here
+             if (previousWhiteSpace == true && behindWhiteSpace == false) {
+               inputCharactersType[i] = behindType;
+               continue;
+             }
+
+             // In order to clearly see the judgment logic, ignore the grammar prompts here
+             if (previousWhiteSpace == false && behindWhiteSpace == false) {
+               inputCharactersType[i] = ContextType.RightToLeft;
+             }
+
+             // In order to clearly see the judgment logic, ignore the grammar prompts here
+             if (previousWhiteSpace == true && behindWhiteSpace == true) {
+               inputCharactersType[i] = ContextType.RightToLeft;
+             }
           }
 
           #endregion
@@ -240,25 +240,32 @@ namespace RTLTMPro {
     /// </summary>
     /// <param name="input">input string</param>
     /// <param name="index">start mirror character index</param>
-    /// <param name="isRtl">array for every character's context type</param>
+    /// <param name="inputCharactersType">array for every character's context type</param>
     /// <returns>mirrored character index</returns>
     private static int GetMirroredCharsType(FastStringBuilder input, int index, 
-        ContextType[] isRtl) {
+        ContextType[] inputCharactersType) {
       int ch = input.Get(index);
       int mirroredCharacterIndex = index;
       if (!MirroredCharsMaper.MirroredCharsMap.ContainsKey((char)ch)) return mirroredCharacterIndex;
-      if (isRtl[index] == ContextType.Tag) {
+      if (inputCharactersType[index] == ContextType.Tag) {
         for (int j = 1; j < input.Length - index; j++) {
-          if (isRtl[index + j] == ContextType.Tag) {
+          if (inputCharactersType[index + j] == ContextType.Tag) {
             mirroredCharacterIndex = index + j;
           }
 
-          if (isRtl[index + j] != ContextType.Tag) {
+          if (inputCharactersType.Length - 1 == index + j ||
+              inputCharactersType[index + j] != ContextType.Tag) {
             return mirroredCharacterIndex;
           }
         }
       }
+      #region Judgment character condition
 
+      ContextType previousType = ContextType.Default;
+
+      (previousType, _, _, _) = GetNearbyType(input, index, inputCharactersType);
+
+      #endregion
       var mirrorCharacter = MirroredCharsMaper.MirroredCharsMap[(char)ch];
       if (mirrorCharacter > (char)ch) {
 
@@ -269,10 +276,10 @@ namespace RTLTMPro {
             ContextType mirrorBehindType = ContextType.Default;
             ContextType middleContentType = ContextType.Default;
             for (int k = 1; k <= j - 1; k++) {
-              ContextType typeThere = isRtl[index + j - k];
+              ContextType typeThere = inputCharactersType[index + j - k];
               if (mirrorPreviousType == ContextType.Default &&
                   typeThere != ContextType.Default && typeThere != ContextType.Tag) {
-                mirrorPreviousType = isRtl[index + j - k];
+                mirrorPreviousType = inputCharactersType[index + j - k];
               }
 
               if (middleContentType == ContextType.Default &&
@@ -286,9 +293,9 @@ namespace RTLTMPro {
             }
 
             for (int k = 1; k + index + j < input.Length; k++) {
-              if (isRtl[index + j + k] != ContextType.Default &&
-                  isRtl[index + j + k] != ContextType.Tag) {
-                mirrorBehindType = isRtl[index + j + k];
+              if (inputCharactersType[index + j + k] != ContextType.Default &&
+                  inputCharactersType[index + j + k] != ContextType.Tag) {
+                mirrorBehindType = inputCharactersType[index + j + k];
                 break;
               }
             }
@@ -308,29 +315,78 @@ namespace RTLTMPro {
             // If both previous and next types are default,
             // assume the text contains no letters.
             if (mirrorPreviousType == ContextType.Default) {
-              isRtl[index] = ContextType.RightToLeft;
-              isRtl[index + j] = ContextType.RightToLeft;
+              inputCharactersType[index] = previousType;
+              inputCharactersType[index + j] = previousType;
               break;
             }
 
-            if (middleContentType == ContextType.LeftToRight) {
-              isRtl[index] = ContextType.LeftToRight;
-              isRtl[index + j] = ContextType.LeftToRight;
+            if (middleContentType == ContextType.LeftToRight 
+                || middleContentType == ContextType.Default 
+                && previousType == ContextType.LeftToRight 
+                && mirrorBehindType == ContextType.LeftToRight) {
+              inputCharactersType[index] = ContextType.LeftToRight;
+              inputCharactersType[index + j] = ContextType.LeftToRight;
             } else {
-              isRtl[index] = ContextType.RightToLeft;
-              isRtl[index + j] = ContextType.RightToLeft;
+              inputCharactersType[index] = ContextType.RightToLeft;
+              inputCharactersType[index + j] = ContextType.RightToLeft;
             }
 
             break;
           }
 
           if (input.Get(index + j) == ch) {
-            int childEndIndex = GetMirroredCharsType(input, index + j, isRtl);
+            int childEndIndex = GetMirroredCharsType(input, index + j, inputCharactersType);
             j = childEndIndex - index;
           }
         }
       }
       return mirroredCharacterIndex;
+    }
+
+    private static (ContextType, bool, ContextType, bool) GetNearbyType(
+      FastStringBuilder input, int index, ContextType[] inputCharactersType) {
+      ContextType previousType = ContextType.Default;
+      ContextType behindType = ContextType.Default;
+
+      bool previousWhiteSpace = false;
+      bool behindWhiteSpace = false;
+
+      // Search forward for Context.Type.
+      // Maybe a failed searching.
+      for (int j = 1; j <= index; j++) {
+        if (input.Get(index - j) == _whiteSpace) {
+          previousWhiteSpace = true;
+        }
+
+        if (inputCharactersType[index - j] != ContextType.Default &&
+            inputCharactersType[index - j] != ContextType.Tag) {
+          previousType = inputCharactersType[index - j];
+
+          break;
+        }
+      }
+
+      // Search forward for Context.Type.
+      // Maybe a failed searching.
+      for (int j = 1; j + index <= input.Length - 1; j++) {
+        if (input.Get(index + j) == _whiteSpace) {
+          behindWhiteSpace = true;
+        }
+
+        if (inputCharactersType[index + j] != ContextType.Default &&
+            inputCharactersType[index + j] != ContextType.Tag) {
+          behindType = inputCharactersType[index + j];
+          break;
+        }
+      }
+
+      if (previousType == ContextType.Default && behindType != ContextType.Default) {
+        previousType = behindType;
+      } else if (previousType != ContextType.Default && behindType == ContextType.Default) {
+        behindType = previousType;
+      }
+
+      return (previousType, previousWhiteSpace, behindType, behindWhiteSpace);
     }
   }
 }
