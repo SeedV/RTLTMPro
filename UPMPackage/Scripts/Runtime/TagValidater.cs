@@ -5,18 +5,19 @@ using TMPro;
 
 namespace RTLTMPro {
   public partial class RTLTextMeshPro {
-    private readonly Type _unicodeCharType;
+    // TextProcessingElement
+    private readonly Type _textProcessingElement;
     private readonly FieldInfo _unicodeField;
     private readonly FieldInfo _stringIndexField;
     private readonly FieldInfo _lengthField;
     private readonly MethodInfo _methodValidateHtmlTag;
 
     public RTLTextMeshPro() {
-      _unicodeCharType = typeof(TMP_Text).GetNestedType("UnicodeChar",
+      _textProcessingElement = typeof(TMP_Text).GetNestedType("TextProcessingElement",
         BindingFlags.NonPublic | BindingFlags.Instance);
-      _unicodeField = _unicodeCharType.GetField("unicode");
-      _stringIndexField = _unicodeCharType.GetField("stringIndex");
-      _lengthField = _unicodeCharType.GetField("length");
+      _unicodeField = _textProcessingElement.GetField("unicode");
+      _stringIndexField = _textProcessingElement.GetField("stringIndex");
+      _lengthField = _textProcessingElement.GetField("length");
       _methodValidateHtmlTag = typeof(TextMeshProUGUI).GetMethod("ValidateHtmlTag",
         BindingFlags.NonPublic | BindingFlags.Instance);
     }
@@ -38,10 +39,10 @@ namespace RTLTMPro {
 
     private bool ValidateTag(string input, int startIndex, out int endIndex) {
       if (_methodValidateHtmlTag != null) {
-        var unicodeChars = Array.CreateInstance(_unicodeCharType, input.Length);
+        var unicodeChars = Array.CreateInstance(_textProcessingElement, input.Length);
         // 填充数组
         for (int i = 0; i < input.Length; i++) {
-          object unicodeChar = Activator.CreateInstance(_unicodeCharType);
+          object unicodeChar = Activator.CreateInstance(_textProcessingElement);
           _unicodeField.SetValue(unicodeChar, input[i]);
           _stringIndexField.SetValue(unicodeChar, i);
           _lengthField.SetValue(unicodeChar, 1);
