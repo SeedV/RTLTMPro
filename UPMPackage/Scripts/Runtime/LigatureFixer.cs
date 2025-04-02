@@ -296,8 +296,6 @@ namespace RTLTMPro
             FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
 
             output.Reverse();
-            int p = 0;
-            int q = outputRedirection.Count - 1;
             int[] inputRedirection = new int[input.Length];
             Array.Fill(inputRedirection, -1);
             for (int i = 0; i < outputRedirection.Count; i++)
