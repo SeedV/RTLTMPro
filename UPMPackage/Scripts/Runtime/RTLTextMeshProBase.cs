@@ -16,6 +16,7 @@ namespace RTLTMPro
         public List<(int, int)> Tags => _tags;
 
         protected List<(int, int)> _tags;
+        protected int[] _redirection;
 
         protected RTLTextMeshProBase()
         {

@@ -30,22 +30,22 @@ namespace RTLTMPro
             get { return originalText; }
         }
 
-        public int[] ReDirection
+        public int[] Redirection
         {
             get
             {
-                if (_reDirection == null)
+                if (_redirection == null)
                 {
-                    _reDirection = new int[originalText.Length];
+                    _redirection = new int[originalText.Length];
                     for (int i = 0; i < originalText.Length; i++)
                     {
-                        _reDirection[i] = i;
+                        _redirection[i] = i;
                     }
                 }
 
-                return _reDirection;
+                return _redirection;
             }
-            set => _reDirection = value;
+            set => _redirection = value;
         }
 
         public bool PreserveNumbers
@@ -113,8 +113,6 @@ namespace RTLTMPro
         protected readonly FastStringBuilder _finalText =
             new FastStringBuilder(RTLSupport.DefaultBufferSize);
 
-        private int[] _reDirection;
-
         protected void Update()
         {
             if (havePropertiesChanged)
@@ -138,7 +136,7 @@ namespace RTLTMPro
             else
             {
                 isRightToLeftText = true;
-                (base.text, _reDirection) = GetFixedText(originalText);
+                (base.text, _redirection) = GetFixedText(originalText);
             }
 
             havePropertiesChanged = true;
@@ -150,9 +148,9 @@ namespace RTLTMPro
                 return (input, Array.Empty<int>());
 
             _finalText.Clear();
-            RTLSupport.FixRTL(input, this, _finalText, out int[] reDirection, farsi, fixTags,
+            RTLSupport.FixRTL(input, this, _finalText, out int[] redirection, farsi, fixTags,
                 preserveNumbers);
-            return (_finalText.ToString(), reDirection);
+            return (_finalText.ToString(), redirection);
         }
     }
 }

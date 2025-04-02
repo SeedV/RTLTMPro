@@ -11,26 +11,26 @@ namespace RTLTMPro
             _mirroredCharsSet = new HashSet<char>(MirroredCharsMaper.MirroredCharsMap.Keys);
 
         private static void FlushBufferToOutputReverse(List<(int, int)> buffer,
-            FastStringBuilder output, List<int> outputReDirection)
+            FastStringBuilder output, List<int> outputRedirection)
         {
             for (int j = 0; j < buffer.Count; j++)
             {
                 var (character, characterIndex) = buffer[buffer.Count - 1 - j];
                 output.Append(character);
-                outputReDirection.Add(characterIndex);
+                outputRedirection.Add(characterIndex);
             }
 
             buffer.Clear();
         }
 
         private static void FlushBufferToOutput(List<(int, int)> buffer, FastStringBuilder output,
-            List<int> outputReDirection, bool clear = true)
+            List<int> outputRedirection, bool clear = true)
         {
             for (int j = 0; j < buffer.Count; j++)
             {
                 var (character, characterIndex) = buffer[j];
                 output.Append(character);
-                outputReDirection.Add(characterIndex);
+                outputRedirection.Add(characterIndex);
             }
 
             if (clear) buffer.Clear();
@@ -39,7 +39,7 @@ namespace RTLTMPro
         /// <summary>
         /// Fixes the flow of the text.
         /// </summary>
-        public static void Fix(FastStringBuilder input, int[] reDirection,
+        public static void Fix(FastStringBuilder input, int[] redirection,
             List<(int, int)> originTags, FastStringBuilder output, bool farsi,
             bool fixTextTags, bool preserveNumbers)
         {
@@ -47,7 +47,7 @@ namespace RTLTMPro
             List<(int, int)> startTagTextHolder = new(512);
             List<(int, int)> endTagTextHolder = new(512);
             List<(int, int)> ltrOutput = new(512);
-            List<int> outputReDirection = new(512);
+            List<int> outputRedirection = new(512);
             int endTagIndex = 0;
             // Some texts like tags and English words need to be displayed in their original order.
             // This list keeps the characters that their order should be reserved
@@ -56,7 +56,7 @@ namespace RTLTMPro
             for (int i = 0; i < originTags.Count; i++)
             {
                 var (start, end) = originTags[i];
-                tags.Add((reDirection[start], reDirection[end]));
+                tags.Add((redirection[start], redirection[end]));
             }
 
             var (inputCharacterType, inputType) =
@@ -111,14 +111,14 @@ namespace RTLTMPro
                         if (i == input.Length - 1 ||
                             inputCharacterType[i + 1] == ContextType.RightToLeft)
                         {
-                            FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
+                            FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
                         }
                         else
                         {
                             if (endTagTextHolder.Count == 0)
                             {
                                 GenerateEndTag(startTagTextHolder, endTagTextHolder, endTagIndex);
-                                FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
+                                FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
                             }
 
                             startTagTextHolder.Reverse();
@@ -133,9 +133,9 @@ namespace RTLTMPro
                     }
                     else if (nextI == -1 || inputCharacterType[nextI] == ContextType.RightToLeft)
                     {
-                        FlushBufferToOutputReverse(ltrTextHolder, output, outputReDirection);
-                        FlushBufferToOutputReverse(ltrOutput, output, outputReDirection);
-                        FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
+                        FlushBufferToOutputReverse(ltrTextHolder, output, outputRedirection);
+                        FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
+                        FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
                     }
                     else
                     {
@@ -178,16 +178,16 @@ namespace RTLTMPro
                         if (endTagTextHolder.Count != 0)
                         {
                             if (SearchForStartTag(input, tags, startTagTextHolder, endTagTextHolder, endTagIndex))
-                                FlushBufferToOutput(endTagTextHolder, output, outputReDirection,
+                                FlushBufferToOutput(endTagTextHolder, output, outputRedirection,
                                     false);
                         }
 
-                        FlushBufferToOutputReverse(ltrTextHolder, output, outputReDirection);
-                        FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
-                        FlushBufferToOutputReverse(ltrOutput, output, outputReDirection);
-                        FlushBufferToOutput(endTagTextHolder, output, outputReDirection);
+                        FlushBufferToOutputReverse(ltrTextHolder, output, outputRedirection);
+                        FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
+                        FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
+                        FlushBufferToOutput(endTagTextHolder, output, outputRedirection);
                         output.Append(characterAtThisIndex);
-                        outputReDirection.Add(i);
+                        outputRedirection.Add(i);
                         continue;
                     }
 
@@ -208,16 +208,16 @@ namespace RTLTMPro
                             {
                                 if (SearchForStartTag(input, tags, startTagTextHolder,
                                         endTagTextHolder, endTagIndex))
-                                    FlushBufferToOutput(endTagTextHolder, output, outputReDirection,
+                                    FlushBufferToOutput(endTagTextHolder, output, outputRedirection,
                                         false);
                             }
 
-                            FlushBufferToOutputReverse(ltrTextHolder, output, outputReDirection);
-                            FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
-                            FlushBufferToOutputReverse(ltrOutput, output, outputReDirection);
-                            FlushBufferToOutput(endTagTextHolder, output, outputReDirection);
+                            FlushBufferToOutputReverse(ltrTextHolder, output, outputRedirection);
+                            FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
+                            FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
+                            FlushBufferToOutput(endTagTextHolder, output, outputRedirection);
                             output.Append(characterAtThisIndex);
-                            outputReDirection.Add(i);
+                            outputRedirection.Add(i);
                             continue;
                         }
                         else
@@ -276,56 +276,56 @@ namespace RTLTMPro
                 {
                     if (SearchForStartTag(input, tags, startTagTextHolder,
                             endTagTextHolder, endTagIndex))
-                        FlushBufferToOutput(endTagTextHolder, output, outputReDirection, false);
+                        FlushBufferToOutput(endTagTextHolder, output, outputRedirection, false);
                 }
 
-                FlushBufferToOutputReverse(ltrTextHolder, output, outputReDirection);
-                FlushBufferToOutput(startTagTextHolder, output, outputReDirection);
-                FlushBufferToOutputReverse(ltrOutput, output, outputReDirection);
-                FlushBufferToOutput(endTagTextHolder, output, outputReDirection);
+                FlushBufferToOutputReverse(ltrTextHolder, output, outputRedirection);
+                FlushBufferToOutput(startTagTextHolder, output, outputRedirection);
+                FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
+                FlushBufferToOutput(endTagTextHolder, output, outputRedirection);
 
                 if (characterAtThisIndex != 0xFFFF &&
                     characterAtThisIndex != (int)SpecialCharacters.ZeroWidthNoJoiner)
                 {
                     output.Append(characterAtThisIndex);
-                    outputReDirection.Add(i);
+                    outputRedirection.Add(i);
                 }
             }
 
-            FlushBufferToOutputReverse(ltrTextHolder, output, outputReDirection);
-            FlushBufferToOutputReverse(ltrOutput, output, outputReDirection);
+            FlushBufferToOutputReverse(ltrTextHolder, output, outputRedirection);
+            FlushBufferToOutputReverse(ltrOutput, output, outputRedirection);
 
             output.Reverse();
             int p = 0;
-            int q = outputReDirection.Count - 1;
-            int[] inputReDirection = new int[input.Length];
-            Array.Fill(inputReDirection, -1);
-            for (int i = 0; i < outputReDirection.Count; i++)
+            int q = outputRedirection.Count - 1;
+            int[] inputRedirection = new int[input.Length];
+            Array.Fill(inputRedirection, -1);
+            for (int i = 0; i < outputRedirection.Count; i++)
             {
-                if (outputReDirection[i] == -1)
+                if (outputRedirection[i] == -1)
                 {
                     continue;
                 }
-                inputReDirection[outputReDirection[i]] = outputReDirection.Count - 1 - i;
+                inputRedirection[outputRedirection[i]] = outputRedirection.Count - 1 - i;
             }
-            for (int i = 0; i < inputReDirection.Length; i++)
+            for (int i = 0; i < inputRedirection.Length; i++)
             {
-                if (inputReDirection[i] == -1)
+                if (inputRedirection[i] == -1)
                 {
                     if (i == 0)
                     {
-                        inputReDirection[0] = 0;
+                        inputRedirection[0] = 0;
                     }
                     else
                     {
-                        inputReDirection[i] = inputReDirection[i - 1];
+                        inputRedirection[i] = inputRedirection[i - 1];
                     }
-                    inputReDirection[i] = inputReDirection[i - 1];
+                    inputRedirection[i] = inputRedirection[i - 1];
                 }
             }
-            for (int i = 0; i < reDirection.Length; i++)
+            for (int i = 0; i < redirection.Length; i++)
             {
-                reDirection[i] = inputReDirection[reDirection[i]];
+                redirection[i] = inputRedirection[redirection[i]];
             }
         }
 

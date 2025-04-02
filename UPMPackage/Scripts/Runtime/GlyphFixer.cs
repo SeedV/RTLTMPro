@@ -38,7 +38,7 @@ namespace RTLTMPro
         /// </summary>
         /// <param name="input"></param>
         /// <param name="output"></param>
-        /// <param name="reDirection"></param>
+        /// <param name="redirection"></param>
         /// <param name="preserveNumbers"></param>
         /// <param name="farsi"></param>
         /// <returns></returns>

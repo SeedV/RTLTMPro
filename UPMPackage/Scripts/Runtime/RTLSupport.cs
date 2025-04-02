@@ -21,7 +21,7 @@ namespace RTLTMPro
         /// <param name="input">Text to fix</param>
         /// <param name="textMeshPro">RTLTextMeshPro for find tags</param>
         /// <param name="output">Fixed text</param>
-        /// <param name="reDirection">ReDirection array</param>
+        /// <param name="redirection">Redirection array</param>
         /// <param name="fixTextTags"></param>
         /// <param name="preserveNumbers"></param>
         /// <param name="farsi"></param>
@@ -30,28 +30,28 @@ namespace RTLTMPro
             string input,
             RTLTextMeshProBase textMeshPro,
             FastStringBuilder output,
-            out int[] reDirection,
+            out int[] redirection,
             bool farsi = true,
             bool fixTextTags = true,
             bool preserveNumbers = false)
         {
-            reDirection = new int[input.Length];
+            redirection = new int[input.Length];
             for (int i = 0; i < input.Length; i++)
             {
-                reDirection[i] = i;
+                redirection[i] = i;
             }
 
             inputBuilder.SetValue(input);
-            TashkeelFixer.RemoveTashkeel(inputBuilder, reDirection);
+            TashkeelFixer.RemoveTashkeel(inputBuilder, redirection);
             // The shape of the letters in shapeFixedLetters is fixed according to their position in word. But the flow of the text is not fixed.
             // Letters count is the same as the input.
             GlyphFixer.Fix(inputBuilder, glyphFixerOutput, preserveNumbers, farsi, fixTextTags);
             //Restore tashkeel to their places.
-            TashkeelFixer.RestoreTashkeel(glyphFixerOutput, reDirection);
+            TashkeelFixer.RestoreTashkeel(glyphFixerOutput, redirection);
 
-            TashkeelFixer.FixShaddaCombinations(glyphFixerOutput, reDirection);
+            TashkeelFixer.FixShaddaCombinations(glyphFixerOutput, redirection);
             // Fix flow of the text and put the result in FinalLetters field
-            LigatureFixer.Fix(glyphFixerOutput, reDirection, textMeshPro.Tags, output, farsi, fixTextTags,
+            LigatureFixer.Fix(glyphFixerOutput, redirection, textMeshPro.Tags, output, farsi, fixTextTags,
                 preserveNumbers);
 
             inputBuilder.Clear();
