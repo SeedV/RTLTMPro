@@ -1,11 +1,13 @@
+using System;
 using System.Collections.Generic;
-// ReSharper disable IdentifierTypo
+using UnityEngine;
 
 namespace RTLTMPro
 {
     public static class TashkeelFixer
     {
-        private static readonly List<TashkeelLocation> TashkeelLocations = new List<TashkeelLocation>(100);
+        private static readonly List<TashkeelLocation> TashkeelLocations =
+            new List<TashkeelLocation>(100);
 
         private static readonly string ShaddaDammatan = new string(
             new[] { (char)TashkeelCharacters.Shadda, (char)TashkeelCharacters.Dammatan });
@@ -43,7 +45,8 @@ namespace RTLTMPro
         private static readonly string ShaddaWithSuperscriptAlefIsolatedForm =
             ((char)TashkeelCharacters.ShaddaWithSuperscriptAlefIsolatedForm).ToString();
 
-        private static readonly HashSet<char> TashkeelCharactersSet = new HashSet<char>() {
+        private static readonly HashSet<char> TashkeelCharactersSet = new HashSet<char>()
+        {
             (char)TashkeelCharacters.Fathan,
             (char)TashkeelCharacters.Dammatan,
             (char)TashkeelCharacters.Kasratan,
@@ -62,15 +65,22 @@ namespace RTLTMPro
             (char)TashkeelCharacters.ShaddaWithSuperscriptAlefIsolatedForm
         };
 
-        private static readonly Dictionary<char, char> ShaddaCombinationMap = new Dictionary<char, char>()
-        {
-            [(char)TashkeelCharacters.Dammatan] = (char)TashkeelCharacters.ShaddaWithDammatanIsolatedForm,
-            [(char)TashkeelCharacters.Kasratan] = (char)TashkeelCharacters.ShaddaWithKasratanIsolatedForm,
-            [(char)TashkeelCharacters.Fatha] = (char)TashkeelCharacters.ShaddaWithFathaIsolatedForm,
-            [(char)TashkeelCharacters.Damma] = (char)TashkeelCharacters.ShaddaWithDammaIsolatedForm,
-            [(char)TashkeelCharacters.Kasra] = (char)TashkeelCharacters.ShaddaWithKasraIsolatedForm,
-            [(char)TashkeelCharacters.SuperscriptAlef] = (char)TashkeelCharacters.ShaddaWithSuperscriptAlefIsolatedForm,
-        };
+        private static readonly Dictionary<char, char> ShaddaCombinationMap =
+            new Dictionary<char, char>()
+            {
+                [(char)TashkeelCharacters.Dammatan] =
+                    (char)TashkeelCharacters.ShaddaWithDammatanIsolatedForm,
+                [(char)TashkeelCharacters.Kasratan] =
+                    (char)TashkeelCharacters.ShaddaWithKasratanIsolatedForm,
+                [(char)TashkeelCharacters.Fatha] =
+                    (char)TashkeelCharacters.ShaddaWithFathaIsolatedForm,
+                [(char)TashkeelCharacters.Damma] =
+                    (char)TashkeelCharacters.ShaddaWithDammaIsolatedForm,
+                [(char)TashkeelCharacters.Kasra] =
+                    (char)TashkeelCharacters.ShaddaWithKasraIsolatedForm,
+                [(char)TashkeelCharacters.SuperscriptAlef] =
+                    (char)TashkeelCharacters.ShaddaWithSuperscriptAlefIsolatedForm,
+            };
 
         /// <summary>
         ///     Removes tashkeel from text.
@@ -78,19 +88,47 @@ namespace RTLTMPro
         public static void RemoveTashkeel(FastStringBuilder input, int[] reDirection)
         {
             TashkeelLocations.Clear();
+            if (reDirection.Length < input.Length)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"reDirection array length: {reDirection.Length} " +
+                    $"is smaller than input length: {input.Length}.");
+            }
+            int i;
             int j = 0; // write index
-            for (int i = 0; i < input.Length; i++)
+            for (i = 0; i < input.Length; i++)
             {
                 int curChar = input.Get(i);
-                if (Char32Utils.IsUnicode16Char(curChar) && TashkeelCharactersSet.Contains((char)curChar))
+                // the reDicrection array is used to keep track of the new position
+                // of the characters . Changes like this:
+                // origin reDirection: 01234567
+                // origin string     : AA+BB+CC
+                // final  string     : AABBCC__
+                // final  reDirection: 01123345
+                if (Char32Utils.IsUnicode16Char(curChar) &&
+                    TashkeelCharactersSet.Contains((char)curChar))
                 {
                     TashkeelLocations.Add(new TashkeelLocation((TashkeelCharacters)curChar, i));
+                    if (i == 0)
+                    {
+                        reDirection[0] = 0;
+                    }
+                    else
+                    {
+                        reDirection[i] = reDirection[i - 1];
+                    }
                 }
                 else
                 {
                     input.Set(j, curChar);
+                    reDirection[i] = j;
                     j++;
                 }
+            }
+            while (i < reDirection.Length)
+            {
+                reDirection[i] = j - 1;
+                i++;
             }
             input.Length = j;
         }
@@ -103,6 +141,22 @@ namespace RTLTMPro
             foreach (TashkeelLocation location in TashkeelLocations)
             {
                 letters.Insert(location.Position, location.Tashkeel);
+                // the reDicrection array is used to keep track of the new position
+                // of the characters . Changes like this:
+                // origin reDirection: 01123345
+                // origin string     : AABBCC__
+                // final  string     : AA+BB+CC
+                // final  reDirection: 01234567
+                for (int i = location.Position; i < reDirection.Length; i++)
+                {
+                    reDirection[i]++;
+                    if (reDirection[i] >= reDirection.Length)
+                    {
+                        reDirection[i] = reDirection.Length - 1;
+                        Debug.LogError("Characters count after Restore Tashkeel is " +
+                                       "more than original text length.");
+                    }
+                }
             }
         }
 
@@ -124,15 +178,23 @@ namespace RTLTMPro
                     && ShaddaCombinationMap.ContainsKey((char)nextChar))
                 {
                     input.Set(j, ShaddaCombinationMap[(char)nextChar]);
+                    reDirection[i] = j;
+                    reDirection[i + 1] = j;
                     j++;
                     i += 2;
                 }
                 else
                 {
                     input.Set(j, curChar);
+                    reDirection[i] = j;
                     j++;
                     i++;
                 }
+            }
+            while (i < reDirection.Length)
+            {
+                reDirection[i] = j - 1;
+                i++;
             }
             input.Length = j;
         }

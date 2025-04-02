@@ -42,7 +42,7 @@ namespace RTLTMPro
         /// <param name="preserveNumbers"></param>
         /// <param name="farsi"></param>
         /// <returns></returns>
-        public static void Fix(FastStringBuilder input, FastStringBuilder output, int[] reDirection, bool preserveNumbers, bool farsi, bool fixTextTags)
+        public static void Fix(FastStringBuilder input, FastStringBuilder output, bool preserveNumbers, bool farsi, bool fixTextTags)
         {
             FixYah(input, farsi);
 

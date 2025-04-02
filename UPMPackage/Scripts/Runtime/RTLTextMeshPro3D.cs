@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using System;
+using TMPro;
 using UnityEngine;
 
 namespace RTLTMPro
@@ -28,6 +29,24 @@ namespace RTLTMPro
         public string OriginalText
         {
             get { return originalText; }
+        }
+
+        public int[] ReDirection
+        {
+            get
+            {
+                if (_reDirection == null)
+                {
+                    _reDirection = new int[originalText.Length];
+                    for (int i = 0; i < originalText.Length; i++)
+                    {
+                        _reDirection[i] = i;
+                    }
+                }
+
+                return _reDirection;
+            }
+            set => _reDirection = value;
         }
 
         public bool PreserveNumbers
@@ -94,6 +113,8 @@ namespace RTLTMPro
 
         protected readonly FastStringBuilder finalText = new FastStringBuilder(RTLSupport.DefaultBufferSize);
 
+        private int[] _reDirection;
+
         protected void Update()
         {
             if (havePropertiesChanged)
@@ -115,22 +136,21 @@ namespace RTLTMPro
             else
             {
                 isRightToLeftText = true;
-                base.text = GetFixedText(originalText);
+                (base.text, _reDirection) = GetFixedText(originalText);
             }
 
             havePropertiesChanged = true;
         }
 
-        private string GetFixedText(string input)
+        private (string, int[]) GetFixedText(string input)
         {
             if (string.IsNullOrEmpty(input))
-                return input;
+                return (input, Array.Empty<int>());
 
             finalText.Clear();
-            RTLSupport.FixRTL(input, null, finalText, farsi, fixTags, preserveNumbers);
-            finalText.Reverse();
+            RTLSupport.FixRTL(input, null, finalText, out int[] reDirection, farsi, fixTags, preserveNumbers);
 
-            return finalText.ToString();
+            return (finalText.ToString(), reDirection);
         }
     }
 }

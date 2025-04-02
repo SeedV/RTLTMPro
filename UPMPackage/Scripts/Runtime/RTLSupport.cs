@@ -1,9 +1,4 @@
-﻿// ReSharper disable IdentifierTypo
-// ReSharper disable CommentTypo
-
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using TMPro;
+﻿using System.Collections.Generic;
 
 namespace RTLTMPro
 {
@@ -13,7 +8,6 @@ namespace RTLTMPro
 
         private static FastStringBuilder inputBuilder;
         private static FastStringBuilder glyphFixerOutput;
-        private static Dictionary<RTLTextMeshPro, int[]> _rtlCharacterReDirections = new();
 
         static RTLSupport()
         {
@@ -27,6 +21,7 @@ namespace RTLTMPro
         /// <param name="input">Text to fix</param>
         /// <param name="textMeshPro">RTLTextMeshPro for find tags</param>
         /// <param name="output">Fixed text</param>
+        /// <param name="reDirection">ReDirection array</param>
         /// <param name="fixTextTags"></param>
         /// <param name="preserveNumbers"></param>
         /// <param name="farsi"></param>
@@ -35,18 +30,22 @@ namespace RTLTMPro
             string input,
             RTLTextMeshPro textMeshPro,
             FastStringBuilder output,
+            out int[] reDirection,
             bool farsi = true,
             bool fixTextTags = true,
             bool preserveNumbers = false)
         {
-            int[] reDirection = new int[input.Length];
-            for (int i = 0; i < input.Length; i++) {
-              reDirection[i] = i;
+            reDirection = new int[input.Length];
+            for (int i = 0; i < input.Length; i++)
+            {
+                reDirection[i] = i;
             }
+
             inputBuilder.SetValue(input);
             TashkeelFixer.RemoveTashkeel(inputBuilder, reDirection);
             // The shape of the letters in shapeFixedLetters is fixed according to their position in word. But the flow of the text is not fixed.
-            GlyphFixer.Fix(inputBuilder, glyphFixerOutput, reDirection, preserveNumbers, farsi, fixTextTags);
+            // Letters count is the same as the input.
+            GlyphFixer.Fix(inputBuilder, glyphFixerOutput, preserveNumbers, farsi, fixTextTags);
             //Restore tashkeel to their places.
             TashkeelFixer.RestoreTashkeel(glyphFixerOutput, reDirection);
 
@@ -55,14 +54,10 @@ namespace RTLTMPro
 
             var tags = new List<(int, int)>();
             if (textMeshPro != null)
-              tags = textMeshPro.FindTags(glyphFixerOutput.ToString());
-            LigatureFixer.Fix(glyphFixerOutput, reDirection, tags, output, farsi, fixTextTags, preserveNumbers);
+                tags = textMeshPro.FindTags(glyphFixerOutput.ToString());
+            LigatureFixer.Fix(glyphFixerOutput, reDirection, tags, output, farsi, fixTextTags,
+                preserveNumbers);
             inputBuilder.Clear();
-            _rtlCharacterReDirections[textMeshPro] = reDirection;
-        }
-
-        public static int[] GetReDirection(RTLTextMeshPro text) {
-          return _rtlCharacterReDirections.GetValueOrDefault(text);
         }
     }
 }
