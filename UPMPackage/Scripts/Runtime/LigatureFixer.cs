@@ -39,8 +39,9 @@ namespace RTLTMPro
         /// <summary>
         /// Fixes the flow of the text.
         /// </summary>
-        public static void Fix(FastStringBuilder input, int[] reDirection, List<(int, int)> tags,
-            FastStringBuilder output, bool farsi, bool fixTextTags, bool preserveNumbers)
+        public static void Fix(FastStringBuilder input, int[] reDirection,
+            List<(int, int)> originTags, FastStringBuilder output, bool farsi,
+            bool fixTextTags, bool preserveNumbers)
         {
             List<(int, int)> ltrTextHolder = new(512);
             List<(int, int)> startTagTextHolder = new(512);
@@ -51,6 +52,12 @@ namespace RTLTMPro
             // Some texts like tags and English words need to be displayed in their original order.
             // This list keeps the characters that their order should be reserved
             // and streams reserved texts into final letters.
+            var tags = new List<(int, int)>(originTags.Count);
+            for (int i = 0; i < originTags.Count; i++)
+            {
+                var (start, end) = originTags[i];
+                tags.Add((reDirection[start], reDirection[end]));
+            }
 
             var (inputCharacterType, inputType) =
                 MixedTypographer.CharactersTypeDetermination(input, tags, fixTextTags);
@@ -291,22 +298,29 @@ namespace RTLTMPro
             output.Reverse();
             int p = 0;
             int q = outputReDirection.Count - 1;
-            List<int> inputReDirection = new List<int>(input.Length);
-            while (p < input.Length)
+            int[] inputReDirection = new int[input.Length];
+            Array.Fill(inputReDirection, -1);
+            for (int i = 0; i < outputReDirection.Count; i++)
             {
-                if (q == 0 || p == outputReDirection[q])
+                if (outputReDirection[i] == -1)
                 {
-                    inputReDirection.Add(outputReDirection.Count - 1 - q);
-                    p++;
+                    continue;
                 }
-                else if (p < outputReDirection[q])
+                inputReDirection[outputReDirection[i]] = outputReDirection.Count - 1 - i;
+            }
+            for (int i = 0; i < inputReDirection.Length; i++)
+            {
+                if (inputReDirection[i] == -1)
                 {
-                    inputReDirection.Add(outputReDirection.Count - 2 - q);
-                    p++;
-                }
-                else
-                {
-                    q--;
+                    if (i == 0)
+                    {
+                        inputReDirection[0] = 0;
+                    }
+                    else
+                    {
+                        inputReDirection[i] = inputReDirection[i - 1];
+                    }
+                    inputReDirection[i] = inputReDirection[i - 1];
                 }
             }
             for (int i = 0; i < reDirection.Length; i++)

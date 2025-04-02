@@ -5,9 +5,8 @@ using UnityEngine;
 namespace RTLTMPro
 {
     [ExecuteInEditMode]
-    public partial class RTLTextMeshPro : TextMeshProUGUI
+    public class RTLTextMeshPro : RTLTextMeshProBase
     {
-        // ReSharper disable once InconsistentNaming
 #if TMP_VERSION_2_1_0_OR_NEWER
         public override string text
 #else
@@ -111,7 +110,8 @@ namespace RTLTMPro
 
         [SerializeField] protected bool forceFix;
 
-        protected readonly FastStringBuilder _finalText = new FastStringBuilder(RTLSupport.DefaultBufferSize);
+        protected readonly FastStringBuilder _finalText =
+            new FastStringBuilder(RTLSupport.DefaultBufferSize);
 
         private int[] _reDirection;
 
@@ -128,11 +128,14 @@ namespace RTLTMPro
             if (originalText == null)
                 originalText = "";
 
+            _tags = FindTags(originalText);
+
             if (ForceFix == false && TextUtils.IsRTLInput(originalText) == false)
             {
                 isRightToLeftText = false;
                 base.text = originalText;
-            } else
+            }
+            else
             {
                 isRightToLeftText = true;
                 (base.text, _reDirection) = GetFixedText(originalText);
@@ -147,7 +150,8 @@ namespace RTLTMPro
                 return (input, Array.Empty<int>());
 
             _finalText.Clear();
-            RTLSupport.FixRTL(input, this, _finalText, out int[] reDirection, farsi, fixTags, preserveNumbers);
+            RTLSupport.FixRTL(input, this, _finalText, out int[] reDirection, farsi, fixTags,
+                preserveNumbers);
             return (_finalText.ToString(), reDirection);
         }
     }
