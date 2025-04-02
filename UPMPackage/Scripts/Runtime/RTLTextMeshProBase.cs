@@ -5,7 +5,7 @@ using TMPro;
 
 namespace RTLTMPro
 {
-    public abstract class RTLTextMeshProBase : TextMeshPro
+    public abstract class RTLTextMeshProBase : TextMeshProUGUI
     {
         private readonly Type _unicodeCharType;
         private readonly FieldInfo _unicodeField;
