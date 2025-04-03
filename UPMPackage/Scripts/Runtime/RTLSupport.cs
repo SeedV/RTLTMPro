@@ -35,13 +35,12 @@ namespace RTLTMPro
             bool fixTextTags = true,
             bool preserveNumbers = false)
         {
-            redirection = new int[input.Length];
-            for (int i = 0; i < input.Length; i++)
+            inputBuilder.SetValue(input);
+            redirection = new int[inputBuilder.Length];
+            for (int i = 0; i < inputBuilder.Length; i++)
             {
                 redirection[i] = i;
             }
-
-            inputBuilder.SetValue(input);
             TashkeelFixer.RemoveTashkeel(inputBuilder, redirection);
             // The shape of the letters in shapeFixedLetters is fixed according to their position in word. But the flow of the text is not fixed.
             // Letters count is the same as the input.
